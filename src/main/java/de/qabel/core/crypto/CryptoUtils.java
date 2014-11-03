@@ -53,47 +53,157 @@ public class CryptoUtils {
 	private final static Logger logger = LogManager.getLogger(CryptoUtils.class
 			.getName());
 
-	private KeyPairGenerator keyGen;
-	private SecureRandom secRandom;
-	private MessageDigest messageDigest;
-	private Cipher symmetricCipher;
-	private Cipher asymmetricCipher;
-	private Cipher gcmCipher;
-	private Signature signer;
-	private Mac hmac;
+	private static final ThreadLocal<SecureRandom> secRandom = new ThreadLocal<SecureRandom>() {
+		@Override
+		protected SecureRandom initialValue() {
+			return new SecureRandom();
+		}
+	};
+
+	private static final ThreadLocal<Mac> hmac = new ThreadLocal<Mac>() {
+		@Override
+		protected Mac initialValue() {
+			Mac hmac;
+			try {
+				hmac = Mac.getInstance(HMAC_ALGORITHM, CRYPTOGRAPHIC_PROVIDER);
+			} catch (NoSuchAlgorithmException e) {
+				logger.error("Cannot find selected algorithm! "
+						+ e.getMessage());
+				throw new RuntimeException("Cannot find selected algorithm!", e);
+			} catch (NoSuchProviderException e) {
+				logger.error("Cannot find selected provider! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected provider!", e);
+			}
+			return hmac;
+		}
+	};
+
+	private static final ThreadLocal<MessageDigest> messageDigest = new ThreadLocal<MessageDigest>() {
+		@Override
+		protected MessageDigest initialValue() {
+			MessageDigest messageDigest;
+			try {
+				messageDigest = MessageDigest.getInstance(
+						MESSAGE_DIGEST_ALGORITHM, CRYPTOGRAPHIC_PROVIDER);
+			} catch (NoSuchAlgorithmException e) {
+				logger.error("Cannot find selected algorithm! "
+						+ e.getMessage());
+				throw new RuntimeException("Cannot find selected algorithm!", e);
+			} catch (NoSuchProviderException e) {
+				logger.error("Cannot find selected provider! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected provider!", e);
+			}
+			return messageDigest;
+		}
+	};
+
+	private static final ThreadLocal<KeyPairGenerator> keyGen = new ThreadLocal<KeyPairGenerator>() {
+		@Override
+		protected KeyPairGenerator initialValue() {
+			KeyPairGenerator keyGen;
+			try {
+				keyGen = KeyPairGenerator.getInstance(ASYM_KEY_ALGORITHM,
+						CRYPTOGRAPHIC_PROVIDER);
+				keyGen.initialize(RSA_KEY_SIZE_BIT);
+			} catch (NoSuchAlgorithmException e) {
+				logger.error("Cannot find selected algorithm! "
+						+ e.getMessage());
+				throw new RuntimeException("Cannot find selected algorithm!", e);
+			} catch (NoSuchProviderException e) {
+				logger.error("Cannot find selected provider! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected provider!", e);
+			}
+			return keyGen;
+		}
+	};
+
+	private static final ThreadLocal<Cipher> symmetricCipher = new ThreadLocal<Cipher>() {
+		@Override
+		protected Cipher initialValue() {
+			Cipher symmetricCipher;
+			try {
+				symmetricCipher = Cipher.getInstance(SYMM_TRANSFORMATION,
+						CRYPTOGRAPHIC_PROVIDER);
+			} catch (NoSuchAlgorithmException e) {
+				logger.error("Cannot find selected algorithm! "
+						+ e.getMessage());
+				throw new RuntimeException("Cannot find selected algorithm!", e);
+			} catch (NoSuchProviderException e) {
+				logger.error("Cannot find selected provider! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected provider!", e);
+			} catch (NoSuchPaddingException e) {
+				logger.error("Cannot find selected padding! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected padding!", e);
+			}
+			return symmetricCipher;
+		}
+	};
+
+	private static final ThreadLocal<Cipher> asymmetricCipher = new ThreadLocal<Cipher>() {
+		@Override
+		protected Cipher initialValue() {
+			Cipher asymmetricCipher;
+			try {
+				asymmetricCipher = Cipher.getInstance(RSA_CIPHER_ALGORITM,
+						CRYPTOGRAPHIC_PROVIDER);
+			} catch (NoSuchAlgorithmException e) {
+				logger.error("Cannot find selected algorithm! "
+						+ e.getMessage());
+				throw new RuntimeException("Cannot find selected algorithm!", e);
+			} catch (NoSuchProviderException e) {
+				logger.error("Cannot find selected provider! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected provider!", e);
+			} catch (NoSuchPaddingException e) {
+				logger.error("Cannot find selected padding! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected padding!", e);
+			}
+			return asymmetricCipher;
+		}
+	};
+
+	private static final ThreadLocal<Cipher> gcmCipher = new ThreadLocal<Cipher>() {
+		@Override
+		protected Cipher initialValue() {
+			Cipher gcmCipher;
+			try {
+				gcmCipher = Cipher.getInstance(SYMM_ALT_TRANSFORMATION,
+						CRYPTOGRAPHIC_PROVIDER);
+			} catch (NoSuchAlgorithmException e) {
+				logger.error("Cannot find selected algorithm! "
+						+ e.getMessage());
+				throw new RuntimeException("Cannot find selected algorithm!", e);
+			} catch (NoSuchProviderException e) {
+				logger.error("Cannot find selected provider! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected provider!", e);
+			} catch (NoSuchPaddingException e) {
+				logger.error("Cannot find selected padding! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected padding!", e);
+			}
+			return gcmCipher;
+		}
+	};
+
+	private static final ThreadLocal<Signature> signer = new ThreadLocal<Signature>() {
+		@Override
+		protected Signature initialValue() {
+			Signature signer;
+			try {
+				signer = Signature.getInstance(SIGNATURE_ALGORITHM,
+						CRYPTOGRAPHIC_PROVIDER);
+			} catch (NoSuchAlgorithmException e) {
+				logger.error("Cannot find selected algorithm! "
+						+ e.getMessage());
+				throw new RuntimeException("Cannot find selected algorithm!", e);
+			} catch (NoSuchProviderException e) {
+				logger.error("Cannot find selected provider! " + e.getMessage());
+				throw new RuntimeException("Cannot find selected provider!", e);
+			}
+			return signer;
+		}
+	};
 
 	private CryptoUtils() {
-
-		try {
-			Security.addProvider(new BouncyCastleProvider());
-
-			secRandom = new SecureRandom();
-
-			keyGen = KeyPairGenerator.getInstance(ASYM_KEY_ALGORITHM,
-					CRYPTOGRAPHIC_PROVIDER);
-			keyGen.initialize(RSA_KEY_SIZE_BIT);
-
-			messageDigest = MessageDigest.getInstance(MESSAGE_DIGEST_ALGORITHM,
-					CRYPTOGRAPHIC_PROVIDER);
-			symmetricCipher = Cipher.getInstance(SYMM_TRANSFORMATION,
-					CRYPTOGRAPHIC_PROVIDER);
-			asymmetricCipher = Cipher.getInstance(RSA_CIPHER_ALGORITM,
-					CRYPTOGRAPHIC_PROVIDER);
-			gcmCipher = Cipher.getInstance(SYMM_ALT_TRANSFORMATION,
-					CRYPTOGRAPHIC_PROVIDER);
-			signer = Signature.getInstance(SIGNATURE_ALGORITHM,
-					CRYPTOGRAPHIC_PROVIDER);
-			hmac = Mac.getInstance(HMAC_ALGORITHM, CRYPTOGRAPHIC_PROVIDER);
-		} catch (NoSuchAlgorithmException e) {
-			logger.error("Cannot find selected algorithm! " + e.getMessage());
-			throw new RuntimeException("Cannot find selected algorithm!", e);
-		} catch (NoSuchPaddingException e) {
-			logger.error("Cannot find selected padding! " + e.getMessage());
-			throw new RuntimeException("Cannot find selected padding!", e);
-		} catch (NoSuchProviderException e) {
-			logger.error("Cannot find selected provider! " + e.getMessage());
-			throw new RuntimeException("Cannot find selected provider!", e);
-		}
+		Security.addProvider(new BouncyCastleProvider());
 	}
 
 	public static CryptoUtils getInstance() {
@@ -105,8 +215,8 @@ public class CryptoUtils {
 	 * 
 	 * @return KeyPair
 	 */
-	synchronized KeyPair generateKeyPair() {
-		return keyGen.generateKeyPair();
+	KeyPair generateKeyPair() {
+		return keyGen.get().generateKeyPair();
 	}
 
 	/**
@@ -116,9 +226,9 @@ public class CryptoUtils {
 	 *            Number of random bytes
 	 * @return byte[ ] with random bytes
 	 */
-	synchronized byte[] getRandomBytes(int numBytes) {
+	byte[] getRandomBytes(int numBytes) {
 		byte[] ranBytes = new byte[numBytes];
-		secRandom.nextBytes(ranBytes);
+		secRandom.get().nextBytes(ranBytes);
 		return ranBytes;
 	}
 
@@ -129,8 +239,8 @@ public class CryptoUtils {
 	 *            byte[ ] to get the digest from
 	 * @return byte[ ] with SHA512 digest
 	 */
-	public synchronized byte[] getSHA512sum(byte[] bytes) {
-		byte[] digest = messageDigest.digest(bytes);
+	public byte[] getSHA512sum(byte[] bytes) {
+		byte[] digest = messageDigest.get().digest(bytes);
 		return digest;
 	}
 
@@ -142,7 +252,7 @@ public class CryptoUtils {
 	 * @return SHA512 digest as as String in the following format:
 	 *         "00:11:aa:bb:..."
 	 */
-	public synchronized String getSHA512sumHumanReadable(byte[] bytes) {
+	public String getSHA512sumHumanReadable(byte[] bytes) {
 		byte[] digest = getSHA512sum(bytes);
 
 		StringBuilder sb = new StringBuilder(191);
@@ -162,7 +272,7 @@ public class CryptoUtils {
 	 *            Input String
 	 * @return byte[ ] with SHA512 digest
 	 */
-	public synchronized byte[] getSHA512sum(String plain) {
+	public byte[] getSHA512sum(String plain) {
 		return getSHA512sum(plain.getBytes());
 	}
 
@@ -174,7 +284,7 @@ public class CryptoUtils {
 	 * @return SHA512 digest as as String in the following format:
 	 *         "00:11:aa:bb:..."
 	 */
-	public synchronized String getSHA512sumHumanReadable(String plain) {
+	public String getSHA512sumHumanReadable(String plain) {
 		return getSHA512sumHumanReadable(plain.getBytes());
 	}
 
@@ -230,9 +340,9 @@ public class CryptoUtils {
 	private byte[] rsaSign(byte[] data, RSAPrivateKey signatureKey) {
 		byte[] sign = null;
 		try {
-			signer.initSign(signatureKey);
-			signer.update(data);
-			sign = signer.sign();
+			signer.get().initSign(signatureKey);
+			signer.get().update(data);
+			sign = signer.get().sign();
 		} catch (InvalidKeyException e) {
 			logger.error("Invalid key!");
 		} catch (SignatureException e) {
@@ -250,7 +360,7 @@ public class CryptoUtils {
 	 *            Primary key pair to sign with
 	 * @return byte[ ] with the signature. Can be null.
 	 */
-	synchronized byte[] rsaSignKeyPair(QblKeyPair qkp, QblPrimaryKeyPair qpkp) {
+	byte[] rsaSignKeyPair(QblKeyPair qkp, QblPrimaryKeyPair qpkp) {
 
 		if (qkp == null || qpkp == null) {
 			return null;
@@ -294,9 +404,9 @@ public class CryptoUtils {
 			RSAPublicKey signatureKey) throws InvalidKeyException {
 		boolean isValid = false;
 		try {
-			signer.initVerify(signatureKey);
-			signer.update(data);
-			isValid = signer.verify(signature);
+			signer.get().initVerify(signatureKey);
+			signer.get().update(data);
+			isValid = signer.get().verify(signature);
 		} catch (InvalidKeyException e) {
 			logger.error("Invalid RSA public key!");
 			throw new InvalidKeyException("Invalid RSA public key!");
@@ -316,7 +426,7 @@ public class CryptoUtils {
 	 * @return is signature valid
 	 * @throws InvalidKeyException
 	 */
-	synchronized boolean rsaValidateKeySignature(QblSubPublicKey subKey,
+	boolean rsaValidateKeySignature(QblSubPublicKey subKey,
 			QblPrimaryPublicKey primaryKey) throws InvalidKeyException {
 
 		if (subKey == null || primaryKey == null) {
@@ -340,9 +450,9 @@ public class CryptoUtils {
 			QblEncPublicKey reciPubKey) throws InvalidKeyException {
 		byte[] cipherText = null;
 		try {
-			asymmetricCipher.init(Cipher.ENCRYPT_MODE,
-					reciPubKey.getRSAPublicKey(), secRandom);
-			cipherText = asymmetricCipher.doFinal(message);
+			asymmetricCipher.get().init(Cipher.ENCRYPT_MODE,
+					reciPubKey.getRSAPublicKey(), secRandom.get());
+			cipherText = asymmetricCipher.get().doFinal(message);
 		} catch (InvalidKeyException e) {
 			logger.error("Invalid RSA public key!");
 			throw new InvalidKeyException("Invalid RSA public key!");
@@ -368,8 +478,9 @@ public class CryptoUtils {
 			throws InvalidKeyException {
 		byte[] plaintext = null;
 		try {
-			asymmetricCipher.init(Cipher.DECRYPT_MODE, privKey, secRandom);
-			plaintext = asymmetricCipher.doFinal(cipherText);
+			asymmetricCipher.get().init(Cipher.DECRYPT_MODE, privKey,
+					secRandom.get());
+			plaintext = asymmetricCipher.get().doFinal(cipherText);
 		} catch (InvalidKeyException e) {
 			logger.error("Invalid RSA private key!");
 			throw new InvalidKeyException("Invalid RSA private key!");
@@ -446,8 +557,9 @@ public class CryptoUtils {
 		iv = new IvParameterSpec(ivOS.toByteArray());
 
 		try {
-			symmetricCipher.init(Cipher.ENCRYPT_MODE, symmetricKey, iv);
-			cipherText.write(symmetricCipher.doFinal(plainText));
+			symmetricCipher.get()
+					.init(Cipher.ENCRYPT_MODE, symmetricKey, iv);
+			cipherText.write(symmetricCipher.get().doFinal(plainText));
 		} catch (InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -479,7 +591,7 @@ public class CryptoUtils {
 	 *            symmetric key which is used for en- and decryption
 	 * @return plaintext which is the result of the decryption
 	 */
-	synchronized byte[] decryptSymmetric(byte[] cipherText, byte[] key) {
+	byte[] decryptSymmetric(byte[] cipherText, byte[] key) {
 		ByteArrayInputStream bi = new ByteArrayInputStream(cipherText);
 		byte[] nonce = new byte[SYMM_NONCE_SIZE_BIT / 8];
 		byte[] counter = new byte[(SYMM_IV_SIZE_BIT - SYMM_NONCE_SIZE_BIT) / 8];
@@ -509,8 +621,9 @@ public class CryptoUtils {
 		symmetricKey = new SecretKeySpec(key, SYMM_KEY_ALGORITHM);
 
 		try {
-			symmetricCipher.init(Cipher.DECRYPT_MODE, symmetricKey, iv);
-			plainText = symmetricCipher.doFinal(encryptedPlainText);
+			symmetricCipher.get()
+					.init(Cipher.DECRYPT_MODE, symmetricKey, iv);
+			plainText = symmetricCipher.get().doFinal(encryptedPlainText);
 		} catch (InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -542,7 +655,7 @@ public class CryptoUtils {
 	 * @return hybrid encrypted String message
 	 * @throws InvalidKeyException
 	 */
-	public synchronized byte[] encryptHybridAndSign(String message,
+	public byte[] encryptHybridAndSign(String message,
 			QblEncPublicKey recipient, QblSignKeyPair signatureKey)
 			throws InvalidKeyException {
 		ByteArrayOutputStream bs = new ByteArrayOutputStream();
@@ -574,9 +687,9 @@ public class CryptoUtils {
 	 *         signature is invalid
 	 * @throws InvalidKeyException
 	 */
-	public synchronized String decryptHybridAndValidateSignature(
-			byte[] cipherText, QblPrimaryKeyPair privKey,
-			QblSignPublicKey signatureKey) throws InvalidKeyException {
+	public String decryptHybridAndValidateSignature(byte[] cipherText,
+			QblPrimaryKeyPair privKey, QblSignPublicKey signatureKey)
+			throws InvalidKeyException {
 		ByteArrayInputStream bs = new ByteArrayInputStream(cipherText);
 		// TODO: Include header byte
 
@@ -642,11 +755,11 @@ public class CryptoUtils {
 	 *            key for HMAC calculation
 	 * @return HMAC of text under key
 	 */
-	public synchronized byte[] calcHmac(byte[] text, byte[] key) {
+	public byte[] calcHmac(byte[] text, byte[] key) {
 		byte[] result = null;
 		try {
-			hmac.init(new SecretKeySpec(key, HMAC_ALGORITHM));
-			result = hmac.doFinal(text);
+			hmac.get().init(new SecretKeySpec(key, HMAC_ALGORITHM));
+			result = hmac.get().doFinal(text);
 		} catch (InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -665,8 +778,7 @@ public class CryptoUtils {
 	 *            key for HMAC calculation
 	 * @return result of verification i.e. true/false
 	 */
-	public synchronized boolean validateHmac(byte[] text, byte[] hmac,
-			byte[] key) {
+	public boolean validateHmac(byte[] text, byte[] hmac, byte[] key) {
 		boolean validation = MessageDigest.isEqual(hmac, calcHmac(text, key));
 		if (!validation) {
 			logger.debug("HMAC is invalid!");
@@ -686,7 +798,7 @@ public class CryptoUtils {
 	 *            authentication
 	 * @return Ciphertext, in format: IV|enc(plaintext)|authentication tag
 	 */
-	public synchronized byte[] encryptAuthenticatedSymmetric(byte[] plainText,
+	public byte[] encryptAuthenticatedSymmetric(byte[] plainText,
 			byte[] key) {
 		return encryptAuthenticatedSymmetric(plainText, key, null);
 	}
@@ -705,26 +817,11 @@ public class CryptoUtils {
 	 *            random input that is concatenated to a counter
 	 * @return Ciphertext, in format: IV|enc(plaintext)|authentication tag
 	 */
-	synchronized byte[] encryptAuthenticatedSymmetric(byte[] plainText,
+	public byte[] encryptAuthenticatedSymmetric(byte[] plainText,
 			byte[] key, byte[] nonce) {
-		Cipher gcmCipher = null;
 		SecretKeySpec symmetricKey;
 		IvParameterSpec iv;
 		ByteArrayOutputStream cipherText = new ByteArrayOutputStream();
-
-		try {
-			gcmCipher = Cipher.getInstance(SYMM_ALT_TRANSFORMATION,
-					CRYPTOGRAPHIC_PROVIDER);
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchProviderException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchPaddingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		if (nonce == null || nonce.length != SYMM_NONCE_SIZE_BIT / 8) {
 			nonce = getRandomBytes(SYMM_NONCE_SIZE_BIT / 8);
@@ -741,7 +838,7 @@ public class CryptoUtils {
 		symmetricKey = new SecretKeySpec(key, SYMM_KEY_ALGORITHM);
 
 		try {
-			gcmCipher.init(Cipher.ENCRYPT_MODE, symmetricKey, iv);
+			gcmCipher.get().init(Cipher.ENCRYPT_MODE, symmetricKey, iv);
 		} catch (InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -751,7 +848,7 @@ public class CryptoUtils {
 		}
 
 		try {
-			cipherText.write(gcmCipher.doFinal(plainText));
+			cipherText.write(gcmCipher.get().doFinal(plainText));
 		} catch (IllegalBlockSizeException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -778,8 +875,7 @@ public class CryptoUtils {
 	 *            verification
 	 * @return Plaintext or null if validation of authentication tag fails
 	 */
-
-	public synchronized byte[] decryptAuthenticatedSymmetricAndValidateTag(
+	public byte[] decryptAuthenticatedSymmetricAndValidateTag(
 			byte[] cipherText, byte[] key) {
 		ByteArrayInputStream bi = new ByteArrayInputStream(cipherText);
 		byte[] nonce = new byte[SYMM_NONCE_SIZE_BIT / 8];
@@ -788,20 +884,6 @@ public class CryptoUtils {
 		byte[] plainText = null;
 		IvParameterSpec iv;
 		SecretKeySpec symmetricKey;
-
-		try {
-			gcmCipher = Cipher.getInstance(SYMM_ALT_TRANSFORMATION,
-					CRYPTOGRAPHIC_PROVIDER);
-		} catch (NoSuchAlgorithmException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		} catch (NoSuchProviderException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		} catch (NoSuchPaddingException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
 
 		try {
 			bi.read(nonce);
@@ -815,8 +897,8 @@ public class CryptoUtils {
 		symmetricKey = new SecretKeySpec(key, SYMM_KEY_ALGORITHM);
 
 		try {
-			gcmCipher.init(Cipher.DECRYPT_MODE, symmetricKey, iv);
-			plainText = gcmCipher.doFinal(encryptedPlainText);
+			gcmCipher.get().init(Cipher.DECRYPT_MODE, symmetricKey, iv);
+			plainText = gcmCipher.get().doFinal(encryptedPlainText);
 		} catch (InvalidKeyException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

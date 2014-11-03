@@ -64,6 +64,28 @@ public class CryptoUtilsTest {
 	}
 
 	@Test
+	public void multithreadedDecryptionTest(){
+		
+		class decryptionTestRunner implements Runnable{
+			@Override
+			public void run() {
+				byte[] key = Hex.decode("1122334455667788991011121314151617181920212223242526272829303132");
+				String plainText = "Hello this a plaintext, which should be encrypted.";
+
+				byte[] cipherText = cu.encryptSymmetric(plainText.getBytes(), key);
+				byte[] plainTextTwo = cu.decryptSymmetric(cipherText, key);
+				assertEquals(Hex.toHexString(plainText.getBytes()), Hex.toHexString(plainTextTwo));
+			}			
+		}
+		
+		Thread runner1 = new Thread(new decryptionTestRunner());
+		Thread runner2 = new Thread(new decryptionTestRunner());
+		
+		runner1.start();
+		runner2.start();
+	}
+
+	@Test
 	public void symmetricCryptoTest() throws UnsupportedEncodingException {
 		// Test case from http://tools.ietf.org/html/rfc3686
 		byte[] key = Hex.decode("F6D66D6BD52D59BB0796365879EFF886C66DD51A5B6A99744B50590C87A23884");
