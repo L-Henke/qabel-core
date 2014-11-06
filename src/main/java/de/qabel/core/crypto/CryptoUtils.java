@@ -209,6 +209,21 @@ public class CryptoUtils {
 	public static CryptoUtils getInstance() {
 		return CryptoUtils.INSTANCE;
 	}
+	
+	/**
+	 * Removes all thread local variables. <b>Must</b> be called when a CryptoUtils
+	 * thread is destroyed.
+	 */
+	public void removeThreadLocals() {
+		secRandom.remove();
+		hmac.remove();
+		messageDigest.remove();
+		symmetricCipher.remove();
+		asymmetricCipher.remove();
+		gcmCipher.remove();
+		signer.remove();
+		keyGen.remove();
+	}
 
 	/**
 	 * Returns a new KeyPair
@@ -528,7 +543,7 @@ public class CryptoUtils {
 	 * @return ciphertext which is the result of the encryption
 	 */
 
-	synchronized byte[] encryptSymmetric(byte[] plainText, byte[] key,
+	byte[] encryptSymmetric(byte[] plainText, byte[] key,
 			byte[] nonce) {
 		ByteArrayOutputStream cipherText = new ByteArrayOutputStream();
 		SecretKeySpec symmetricKey = new SecretKeySpec(key, SYMM_KEY_ALGORITHM);
