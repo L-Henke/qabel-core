@@ -1,9 +1,12 @@
 package de.qabel.core.config;
 
 import java.io.Serializable;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import de.qabel.core.drop.DropURL;
+import de.qabel.core.exceptions.QblDropInvalidURL;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,8 +14,12 @@ import org.junit.Test;
 import de.qabel.ackack.Actor;
 import de.qabel.ackack.Responsible;
 
-public class ConfigActorTest {
+public class ResourceActorTest {
 	Settings settings;
+	Contacts contacts;
+	ContactTestFactory contactFactory = new ContactTestFactory();
+	ContactsTestFactory contactsFactory = new ContactsTestFactory();
+	ArrayList<Contact> receivedContacts = null;
 	ArrayList<Account> accountsList;
 	ArrayList<DropServer> dropServersList;
 	ArrayList<Identity> identitiesList;
@@ -27,15 +34,16 @@ public class ConfigActorTest {
 	StorageServerTestFactory storageServerFactory;
 	StorageVolumeTestFactory storageVolumeFactory;
 
-	ConfigActor configActor;
+	ResourceActor resourceActor;
 	final TestActor testActor = new TestActor();
 
 	@Before
 	public void setUp() {
 		settings = new Settings();
+		contacts = contactsFactory.create();
 		settings.setLocalSettings(new LocalSettingsEquivalentTestFactory().create());
 		settings.setSyncedSettings(new SyncedSettingsEquivalentTestFactory().create());
-		configActor = new ConfigActor(settings);
+		resourceActor = new ResourceActor(settings, contacts);
 		accountFactory = new AccountTestFactory();
 		dropServerFactory = new DropServerTestFactory();
 		identityFactory = new IdentityTestFactory();
@@ -46,7 +54,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveAccountsTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveAccounts();
@@ -62,7 +70,7 @@ public class ConfigActorTest {
 		Account account2 = accountFactory.create();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.writeAccounts(account1, account2);
@@ -85,7 +93,7 @@ public class ConfigActorTest {
 		Assert.assertTrue(accounts.getAccounts().contains(account2));
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.removeAccounts(account1, account2);
@@ -103,7 +111,7 @@ public class ConfigActorTest {
 		int listSize = accounts.getAccounts().size();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveAccounts();
@@ -130,7 +138,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveDropServersTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveDropServers();
@@ -147,7 +155,7 @@ public class ConfigActorTest {
 		DropServer dropServer2 = testFactory.create();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.writeDropServers(dropServer1, dropServer2);
@@ -171,7 +179,7 @@ public class ConfigActorTest {
 		Assert.assertTrue(dropServers.getDropServers().contains(dropServer2));
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.removeDropServers(dropServer1, dropServer2);
@@ -189,7 +197,7 @@ public class ConfigActorTest {
 		int listSize = dropServers.getDropServers().size();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveDropServers();
@@ -216,7 +224,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveIdentitiesTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveIdentities();
@@ -233,7 +241,7 @@ public class ConfigActorTest {
 		Identity identity2 = testFactory.create();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.writeIdentities(identity1, identity2);
@@ -257,7 +265,7 @@ public class ConfigActorTest {
 		Assert.assertTrue(identities.getIdentities().contains(identity2));
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.removeIdentities(identity1, identity2);
@@ -275,7 +283,7 @@ public class ConfigActorTest {
 		int listSize = identities.getIdentities().size();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveIdentities();
@@ -302,7 +310,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveLocalModuleSettingsTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveLocalModuleSettings();
@@ -315,7 +323,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveLocalSettingsTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveLocalSettings();
@@ -327,7 +335,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveStorageServersTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveStorageServers();
@@ -344,7 +352,7 @@ public class ConfigActorTest {
 		StorageServer storageServer2 = testFactory.create();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.writeStorageServers(storageServer1, storageServer2);
@@ -369,7 +377,7 @@ public class ConfigActorTest {
 		Assert.assertTrue(storageServers.getStorageServers().contains(storageServer2));
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.removeStorageServers(storageServer1, storageServer2);
@@ -387,7 +395,7 @@ public class ConfigActorTest {
 		int listSize = storageServers.getStorageServers().size();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveStorageServers();
@@ -414,7 +422,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveStorageVolumesTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveStorageVolumes();
@@ -431,7 +439,7 @@ public class ConfigActorTest {
 		StorageVolume storageVolume2 = testFactory.create();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.writeStorageVolumes(storageVolume1, storageVolume2);
@@ -456,7 +464,7 @@ public class ConfigActorTest {
 		Assert.assertTrue(storageVolumes.getStorageVolumes().contains(storageVolume2));
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.removeStorageVolumes(storageVolume1, storageVolume2);
@@ -474,7 +482,7 @@ public class ConfigActorTest {
 		int listSize = storageVolumes.getStorageVolumes().size();
 
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveStorageVolumes();
@@ -501,7 +509,7 @@ public class ConfigActorTest {
 	@Test
 	public void retrieveSyncedModuleSettingsTest() throws InterruptedException {
 		Thread actorThread = new Thread(testActor);
-		Thread configActorThread = new Thread(configActor);
+		Thread configActorThread = new Thread(resourceActor);
 		actorThread.start();
 		configActorThread.start();
 		testActor.retrieveSyncedModuleSettings();
@@ -513,52 +521,52 @@ public class ConfigActorTest {
 
 	class TestActor extends Actor {
 		public void retrieveAccounts() {
-			configActor.retrieveAccounts(this, new Responsible() {
+			resourceActor.retrieveAccounts(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
 					accountsList = new ArrayList<Account>(Arrays.asList(
-							(Account[])data));
+							(Account[]) data));
 					stop();
 				}
 			});
 		}
 
 		public void retrieveDropServers() {
-			configActor.retrieveDropServers(this, new Responsible() {
+			resourceActor.retrieveDropServers(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
 					dropServersList = new ArrayList<DropServer>(Arrays.asList(
-							(DropServer[])data));
+							(DropServer[]) data));
 					stop();
 				}
 			});
 		}
 
 		public void retrieveIdentities() {
-			configActor.retrieveIdentities(this, new Responsible() {
+			resourceActor.retrieveIdentities(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
 					identitiesList = new ArrayList<Identity>(Arrays.asList(
-							(Identity[])data));
+							(Identity[]) data));
 					stop();
 				}
 			});
 		}
 
 		public void retrieveLocalModuleSettings() {
-			configActor.retrieveLocalModuleSettings(this, new Responsible() {
+			resourceActor.retrieveLocalModuleSettings(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
-					localModuleSettingsList = 
+					localModuleSettingsList =
 							new ArrayList<LocaleModuleSettings>(
-									Arrays.asList((LocaleModuleSettings[])data));
+									Arrays.asList((LocaleModuleSettings[]) data));
 					stop();
 				}
 			});
 		}
 
 		public void retrieveLocalSettings() {
-			configActor.retrieveLocalSettings(this, new Responsible() {
+			resourceActor.retrieveLocalSettings(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
 					localSettings = (LocalSettings) data[0];
@@ -568,111 +576,327 @@ public class ConfigActorTest {
 		}
 
 		public void retrieveStorageServers() {
-			configActor.retrieveStorageServers(this, new Responsible() {
+			resourceActor.retrieveStorageServers(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
 					storageServersList = new ArrayList<StorageServer>(
-							Arrays.asList((StorageServer[])data));
+							Arrays.asList((StorageServer[]) data));
 					stop();
 				}
 			});
 		}
 
 		public void retrieveStorageVolumes() {
-			configActor.retrieveStorageVolumes(this, new Responsible() {
+			resourceActor.retrieveStorageVolumes(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
 					storageVolumesList = new ArrayList<StorageVolume>(
-							Arrays.asList((StorageVolume[])data));
+							Arrays.asList((StorageVolume[]) data));
 					stop();
 				}
 			});
 		}
 
 		public void retrieveSyncedModuleSettings() {
-			configActor.retrieveSyncedModuleSettings(this, new Responsible() {
+			resourceActor.retrieveSyncedModuleSettings(this, new Responsible() {
 				@Override
 				public void onResponse(Serializable... data) {
 					syncedModuleSettingsList = new ArrayList<SyncedModuleSettings>(
-							Arrays.asList((SyncedModuleSettings[])data));
+							Arrays.asList((SyncedModuleSettings[]) data));
 					stop();
 				}
 			});
 		}
 
-		public void writeAccounts(Account...data) {
-			configActor.writeAccounts(data);
+		public void writeAccounts(Account... data) {
+			resourceActor.writeAccounts(data);
 			stop();
 		}
 
-		public void writeDropServers(DropServer...data) {
-			configActor.writeDropServers(data);
+		public void writeDropServers(DropServer... data) {
+			resourceActor.writeDropServers(data);
 			stop();
 		}
 
-		public void writeIdentities(Identity...data) {
-			configActor.writeIdentities(data);
+		public void writeIdentities(Identity... data) {
+			resourceActor.writeIdentities(data);
 			stop();
 		}
 
-		public void writeLocalModuleSettings(LocaleModuleSettings...data) {
-			configActor.writeLocalModuleSettings(data);
+		public void writeLocalModuleSettings(LocaleModuleSettings... data) {
+			resourceActor.writeLocalModuleSettings(data);
 			stop();
 		}
 
-		public void writeLocalSettings(LocalSettings...data) {
-			configActor.writeLocalSettings(data);
+		public void writeLocalSettings(LocalSettings... data) {
+			resourceActor.writeLocalSettings(data);
 			stop();
 		}
 
-		public void writeStorageServers(StorageServer...data) {
-			configActor.writeStorageServers(data);
+		public void writeStorageServers(StorageServer... data) {
+			resourceActor.writeStorageServers(data);
 			stop();
 		}
 
-		public void writeStorageVolumes(StorageVolume...data) {
-			configActor.writeStorageVolumes(data);
+		public void writeStorageVolumes(StorageVolume... data) {
+			resourceActor.writeStorageVolumes(data);
 			stop();
 		}
 
-		public void writeSyncedModuleSettings(SyncedModuleSettings...data) {
-			configActor.writeSyncedModuleSettings(data);
+		public void writeSyncedModuleSettings(SyncedModuleSettings... data) {
+			resourceActor.writeSyncedModuleSettings(data);
 			stop();
 		}
 
-		public void removeAccounts(Account...data) {
-			configActor.removeAccounts(data);
+		public void removeAccounts(Account... data) {
+			resourceActor.removeAccounts(data);
 			stop();
 		}
 
-		public void removeDropServers(DropServer...data) {
-			configActor.removeDropServers(data);
+		public void removeDropServers(DropServer... data) {
+			resourceActor.removeDropServers(data);
 			stop();
 		}
 
-		public void removeIdentities(Identity...data) {
-			configActor.removeIdentities(data);
+		public void removeIdentities(Identity... data) {
+			resourceActor.removeIdentities(data);
 			stop();
 		}
 
-		public void removeLocalModuleSettings(LocaleModuleSettings...data) {
-			configActor.removeLocalModuleSettings(data);
+		public void removeLocalModuleSettings(LocaleModuleSettings... data) {
+			resourceActor.removeLocalModuleSettings(data);
 			stop();
 		}
 
-		public void removeStorageServers(StorageServer...data) {
-			configActor.removeStorageServers(data);
+		public void removeStorageServers(StorageServer... data) {
+			resourceActor.removeStorageServers(data);
 			stop();
 		}
 
-		public void removeStorageVolumes(StorageVolume...data) {
-			configActor.removeStorageVolumes(data);
+		public void removeStorageVolumes(StorageVolume... data) {
+			resourceActor.removeStorageVolumes(data);
 			stop();
 		}
 
-		public void removeSyncedModuleSettings(SyncedModuleSettings...data) {
-			configActor.removeSyncedModuleSettings(data);
+		public void removeSyncedModuleSettings(SyncedModuleSettings... data) {
+			resourceActor.removeSyncedModuleSettings(data);
+			stop();
+		}
+
+		public void retrieveContacts(String... data) {
+			resourceActor.retrieveContacts(this, new Responsible() {
+				@Override
+				public void onResponse(Serializable... data) {
+					receivedContacts = new ArrayList<Contact>(Arrays.asList((Contact[]) data));
+					stop();
+				}
+			}, data);
+		}
+
+		public void writeContacts(Contact... data) {
+			resourceActor.writeContacts(data);
+			stop();
+		}
+
+		public void removeContacts(String... data) {
+			resourceActor.removeContacts(data);
 			stop();
 		}
 	}
+
+	@Test
+	public void retrieveSingleContactTest() throws InterruptedException {
+		Contact testContactRetrieveSingle = contactFactory.create();
+		contacts.add(testContactRetrieveSingle);
+
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.retrieveContacts(testContactRetrieveSingle.getKeyIdentifier());
+		actorThread.join();
+		contactActorThread.join();
+		Assert.assertEquals(1, receivedContacts.size());
+		Assert.assertTrue(receivedContacts.contains(testContactRetrieveSingle));
+	}
+
+	@Test
+	public void retrieveMultipleContactsTest() throws InterruptedException {
+		Contact testContactRetrieveMultiple1 = contactFactory.create();
+		Contact testContactRetrieveMultiple2 = contactFactory.create();
+		contacts.add(testContactRetrieveMultiple1);
+		contacts.add(testContactRetrieveMultiple2);
+
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.retrieveContacts(testContactRetrieveMultiple1.getKeyIdentifier(),
+				testContactRetrieveMultiple2.getKeyIdentifier());
+		actorThread.join();
+		contactActorThread.join();
+		Assert.assertTrue(receivedContacts.contains(testContactRetrieveMultiple1));
+		Assert.assertTrue(receivedContacts.contains(testContactRetrieveMultiple2));
+		Assert.assertEquals(2, receivedContacts.size());
+	}
+
+	@Test
+	public void retrieveAllContactsTest() throws InterruptedException {
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.retrieveContacts();
+		actorThread.join();
+		contactActorThread.join();
+
+		Assert.assertTrue(contacts.getContacts().containsAll(receivedContacts));
+		Assert.assertTrue(receivedContacts.containsAll(contacts.getContacts()));
+	}
+
+	@Test
+	public void addSingleContactTest() throws InterruptedException {
+		Contact testContactAddSingle = contactFactory.create();
+
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.writeContacts(testContactAddSingle);
+		actorThread.join();
+		contactActorThread.join();
+		Assert.assertTrue(contacts.getContacts().contains(testContactAddSingle));
+	}
+
+	@Test
+	public void addMultipleContactsTest() throws InterruptedException {
+		Contact testContactAddMulti1 = contactFactory.create();
+		Contact testContactAddMulti2 = contactFactory.create();
+
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.writeContacts(testContactAddMulti1, testContactAddMulti2);
+		actorThread.join();
+		contactActorThread.join();
+		Assert.assertTrue(contacts.getContacts().contains(testContactAddMulti1));
+		Assert.assertTrue(contacts.getContacts().contains(testContactAddMulti2));
+	}
+
+	@Test
+	public void removeSingleContactTest() throws InterruptedException {
+		Contact testContactRemoveSingle = contactFactory.create();
+
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.removeContacts(testContactRemoveSingle.getKeyIdentifier());
+		actorThread.join();
+		contactActorThread.join();
+		Assert.assertFalse(contacts.getContacts().contains(testContactRemoveSingle));
+	}
+
+	@Test
+	public void removeMultipleContactsTest() throws InterruptedException {
+		Contact testContactRemoveMultiple1 = contactFactory.create();
+		Contact testContactRemoveMultiple2 = contactFactory.create();
+		contacts.add(testContactRemoveMultiple1);
+		contacts.add(testContactRemoveMultiple2);
+
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.removeContacts(testContactRemoveMultiple1.getKeyIdentifier(),
+				testContactRemoveMultiple2.getKeyIdentifier());
+		actorThread.join();
+		contactActorThread.join();
+		Assert.assertFalse(contacts.getContacts().contains(testContactRemoveMultiple1));
+		Assert.assertFalse(contacts.getContacts().contains(testContactRemoveMultiple2));
+	}
+
+	@Test
+	public void changeSingleContactTest() throws InterruptedException, MalformedURLException, QblDropInvalidURL {
+		//Add new test Contact which has to be changed
+		Contact testContactOriginal = contactFactory.create();
+		String testContactIdentifier = testContactOriginal.getKeyIdentifier();
+		contacts.add(testContactOriginal);
+
+		// Retrieve new test Contact via ContactsActor
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.retrieveContacts(testContactIdentifier);
+		actorThread.join();
+		contactActorThread.join();
+		Contact testContactChanged = receivedContacts.get(0);
+
+		// Create new test DropURL
+		DropURL testDropUrl =
+				new DropURL("https://drop.testDrop.de/0123456789012345678901234"
+						+ "567890123456789123");
+
+		// Assure that testDropURL is not already contained in the test Contact's DropUrl list
+		Assert.assertFalse(testContactChanged.getDropUrls().contains(testDropUrl));
+
+		// Add new testDropURL to test Contact and write changed Contact to Contacts
+		testContactChanged.addDrop(testDropUrl);
+		testActor.writeContacts(testContactChanged);
+		actorThread.join();
+		contactActorThread.join();
+
+		// Get changed Contact from Contacts list
+		Contact writtenContact = contacts.getByKeyIdentifier(testContactIdentifier);
+		// Assure that new testDropUrl is contained in the DropUrl list
+		Assert.assertTrue(writtenContact.getDropUrls().contains(testDropUrl));
+	}
+
+	@Test
+	public void changeMultipleContactsTest() throws InterruptedException, MalformedURLException, QblDropInvalidURL {
+		//Add new test Contact which has to be changed
+		Contact testContactOriginal1 = contactFactory.create();
+		Contact testContactOriginal2 = contactFactory.create();
+		String testContactIdentifier1 = testContactOriginal1.getKeyIdentifier();
+		String testContactIdentifier2 = testContactOriginal2.getKeyIdentifier();
+		contacts.add(testContactOriginal1);
+		contacts.add(testContactOriginal2);
+
+		// Retrieve new test Contact via ContactsActor
+		Thread actorThread = new Thread(testActor);
+		Thread contactActorThread = new Thread(resourceActor);
+		actorThread.start();
+		contactActorThread.start();
+		testActor.retrieveContacts(testContactIdentifier1, testContactIdentifier2);
+		actorThread.join();
+		contactActorThread.join();
+		Contact testContactChanged1 = receivedContacts.get(0);
+		Contact testContactChanged2 = receivedContacts.get(1);
+
+		// Create new test DropURL
+		DropURL testDropUrl =
+				new DropURL("https://drop.testDrop.de/0123456789012345678901234"
+						+ "567890123456789123");
+		// Assure that testDropURL is not already contained in the test Contact's DropUrl list
+		Assert.assertFalse(testContactChanged1.getDropUrls().contains(testDropUrl));
+		Assert.assertFalse(testContactChanged2.getDropUrls().contains(testDropUrl));
+
+		// Add new testDropURL to test Contact and write changed Contact to Contacts
+		testContactChanged1.addDrop(testDropUrl);
+		testContactChanged2.addDrop(testDropUrl);
+		testActor.writeContacts(testContactChanged1, testContactChanged2);
+		actorThread.join();
+		contactActorThread.join();
+
+		// Get changed Contact from Contacts list
+		Contact writtenContact1 = contacts.getByKeyIdentifier(testContactIdentifier1);
+		Contact writtenContact2 = contacts.getByKeyIdentifier(testContactIdentifier2);
+
+		// Assure that new testDropUrl is contained in the DropUrl list
+		Assert.assertTrue(writtenContact1.getDropUrls().contains(testDropUrl));
+		Assert.assertTrue(writtenContact2.getDropUrls().contains(testDropUrl));
+	}
 }
+

@@ -1,6 +1,7 @@
 package de.qabel.core.config;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -14,9 +15,10 @@ import de.qabel.ackack.Responsible;
  * Actor which handles the access to the configuration of Qabel.
  *
  */
-public class ConfigActor extends Actor {
-	private static ConfigActor defaultConfigActor = null;
+public class ResourceActor extends Actor {
+	private static ResourceActor defaultResourceActor = null;
 	private Settings settings;
+	private Contacts contacts;
 	private static final String RETRIEVE_ACCOUNTS = "retrieveAccounts";
 	private static final String RETRIEVE_DROPSERVERS = "retrieveDropServers";
 	private static final String RETRIEVE_IDENTITIES = "retrieveIdentities";
@@ -25,6 +27,7 @@ public class ConfigActor extends Actor {
 	private static final String RETRIEVE_STORAGESERVERS = "retrieveStorageServers";
 	private static final String RETRIEVE_STORAGEVOLUMES = "retrieveStorageVolumes";
 	private static final String RETRIEVE_SYNCEDMODULESETTINGS = "retrieveSyncedModuleSettings";
+	private static final String RETRIEVE_CONTACTS = "retrieveContacts";
 
 	private static final String WRITE_ACCOUNTS = "writeAccounts";
 	private static final String WRITE_DROPSERVERS = "writeDropServers";
@@ -34,6 +37,7 @@ public class ConfigActor extends Actor {
 	private static final String WRITE_STORAGESERVERS = "writeStorageServers";
 	private static final String WRITE_STORAGEVOLUMES = "writeStorageVolumes";
 	private static final String WRITE_SYNCEDMODULESETTINGS = "writeSyncedModuleSettings";
+	private static final String WRITE_CONTACTS = "writeContacts";
 
 	private static final String REMOVE_ACCOUNTS = "removeAccounts";
 	private static final String REMOVE_DROPSERVERS = "removeDropServers";
@@ -42,18 +46,20 @@ public class ConfigActor extends Actor {
 	private static final String REMOVE_STORAGESERVERS = "removeStorageServers";
 	private static final String REMOVE_STORAGEVOLUMES = "removeStorageVolumes";
 	private static final String REMOVE_SYNCEDMODULESETTINGS = "removeSyncedModuleSettings";
+	private static final String REMOVE_CONTACTS = "removeContacts";
 
-	private final static Logger logger = LogManager.getLogger(ConfigActor.class.getName());
+	private final static Logger logger = LogManager.getLogger(ResourceActor.class.getName());
 
-	static ConfigActor getDefault() {
-		if(defaultConfigActor == null) {
-			defaultConfigActor = new ConfigActor(new Settings());
+	static ResourceActor getDefault() {
+		if(defaultResourceActor == null) {
+			defaultResourceActor = new ResourceActor(new Settings(), new Contacts());
 		}
-		return defaultConfigActor;
+		return defaultResourceActor;
 	}
 
-	public ConfigActor(Settings settings) {
+	public ResourceActor(Settings settings, Contacts contacts) {
 		this.settings= settings;
+		this.contacts = contacts;
 	}
 
 	/**
@@ -333,6 +339,44 @@ public class ConfigActor extends Actor {
 		return post(info, (Serializable[]) syncedModuleSettings);
 	}
 
+	/**
+	 * Add new and write changed contacts
+	 * @param contacts Contacts to be written
+	 * @return True if contacts have been sent to actor
+	 */
+	public boolean writeContacts(final Contact... contacts) {
+		MessageInfo info = new MessageInfo();
+		info.setType(WRITE_CONTACTS);
+		return post(info, (Serializable[]) contacts);
+	}
+
+	/**
+	 * Retrieve contacts by key identifier. If no key identifier is passed all
+	 * contacts will be retrieved.
+	 * @param sender Sending actor
+	 * @param responsible Class to handle the call back
+	 * @param keyIdentifiers Key identifiers of requested contacts (all if empty)
+	 * @return True if request has been sent to actor
+	 */
+	public boolean retrieveContacts(Actor sender, Responsible responsible, final String... keyIdentifiers) {
+		MessageInfo info = new MessageInfo();
+		info.setSender(sender);
+		info.setResponsible(responsible);
+		info.setType(RETRIEVE_CONTACTS);
+		return post(info, (Serializable[]) keyIdentifiers);
+	}
+
+	/**
+	 * Remove one or more contacts.
+	 * @param keyIdentifiers Key identifiers of contacts to be removed
+	 * @return True if request has been sent to actor
+	 */
+	public boolean removeContacts(final String... keyIdentifiers) {
+		MessageInfo info = new MessageInfo();
+		info.setType(REMOVE_CONTACTS);
+		return post(info, (Serializable[]) keyIdentifiers);
+	}
+
 	@Override
 	protected void react(MessageInfo info, Object... data) {
 		Accounts accounts;
@@ -480,6 +524,32 @@ public class ConfigActor extends Actor {
 				.getSyncedModuleSettings();
 			for(int i = 0; i< data.length; i++) {
 				syncedModuleSettingsList.remove((SyncedModuleSettings) data[i]);
+			}
+			break;
+		case WRITE_CONTACTS:
+			Contact contact;
+			for (int i = data.length-1; i>=0; i--) {
+				contact = (Contact) data[i];
+				this.contacts.replace(contact);
+			}
+			break;
+		case RETRIEVE_CONTACTS:
+			Contact[] contactsArray;
+			if(data.length > 0) {
+				ArrayList<Contact> contactsList = new ArrayList<Contact>();
+				for(int i = data.length-1; i >= 0; i--){
+					contactsList.add(this.contacts.getByKeyIdentifier((String) data[i]));
+				}
+				contactsArray = (Contact[]) contactsList.toArray(new Contact[0]);
+			}
+			else {
+				contactsArray = this.contacts.getContacts().toArray(new Contact[0]);
+			}
+			info.response((Serializable[]) contactsArray);
+			break;
+		case REMOVE_CONTACTS:
+			for (int i = data.length-1; i>=0; i--) {
+				this.contacts.remove(data[i].toString());
 			}
 			break;
 		default:
