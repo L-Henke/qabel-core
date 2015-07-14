@@ -74,7 +74,7 @@ public class MultiPartCryptoTest {
 
         loadContactsAndIdentities();
         loadDropServers();
-		communicatorUtil = DropCommunicatorUtil.newInstance(resourceActor, emitter, contacts, identities, servers);
+		communicatorUtil = DropCommunicatorUtil.newInstance(resourceActor, emitter, contacts, identities, servers, new QblClassLoader(ClassLoader.getSystemClassLoader()));
     }
 
     @After

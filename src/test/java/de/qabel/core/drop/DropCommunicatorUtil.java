@@ -20,8 +20,8 @@ public class DropCommunicatorUtil extends Module {
 		super(moduleManager);
 	}
 
-	static public DropCommunicatorUtil newInstance(ResourceActor resourceActor, EventEmitter emitter, Contacts contacts, Identities identities, DropServers dropServers) throws IllegalAccessException, InstantiationException {
-		DropActor dropActor = new DropActor(resourceActor, emitter);
+	static public DropCommunicatorUtil newInstance(ResourceActor resourceActor, EventEmitter emitter, Contacts contacts, Identities identities, DropServers dropServers, QblClassLoader classLoader) throws IllegalAccessException, InstantiationException {
+		DropActor dropActor = new DropActor(resourceActor, emitter, classLoader);
 
 		Thread dropActorThread = new Thread(dropActor, "dropActor");
 		dropActor.setInterval(500);

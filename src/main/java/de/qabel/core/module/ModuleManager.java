@@ -1,12 +1,11 @@
 package de.qabel.core.module;
 
 import de.qabel.ackack.event.EventEmitter;
+import de.qabel.core.config.QblClassLoader;
 import de.qabel.core.config.ResourceActor;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.HashMap;
 
 /**
@@ -14,30 +13,22 @@ import java.util.HashMap;
  * stopping and removing them.
  */
 public class ModuleManager {
-	public final static ClassLoader LOADER = new ClassLoader();
+	private final QblClassLoader classLoader;
 
 	private final EventEmitter eventEmitter;
 	private final ResourceActor resourceActor;
 
 	private HashMap<Module, ModuleThread> modules;
 
-
-	static public class ClassLoader extends URLClassLoader{
-		public ClassLoader() {
-			super(new URL[0]);
-		}
-
-		@Override
-		public void addURL(URL url) {
-			super.addURL(url);
-		}
+	public ModuleManager(EventEmitter emitter, ResourceActor resourceActor) {
+		this(emitter, resourceActor, new QblClassLoader(ClassLoader.getSystemClassLoader()));
 	}
 
-
-	public ModuleManager(EventEmitter emitter, ResourceActor resourceActor) {
+	public ModuleManager(EventEmitter emitter, ResourceActor resourceActor, QblClassLoader classLoader) {
 		eventEmitter = emitter;
 		modules = new HashMap<>();
 		this.resourceActor = resourceActor;
+		this.classLoader = classLoader;
 	}
 
 	EventEmitter getEventEmitter() {
@@ -65,9 +56,8 @@ public class ModuleManager {
 
 	public void startModule(File jar, String className) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
 		try {
-			ClassLoader cld = LOADER;
-			cld.addURL(jar.toURI().toURL());
-			Class cls = Class.forName(className, true, cld);
+			classLoader.addURL(jar.toURI().toURL());
+			Class cls = Class.forName(className, true, classLoader);
 			try {
 				startModule(cls.asSubclass(Module.class));
 			}

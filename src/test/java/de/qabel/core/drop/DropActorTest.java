@@ -66,7 +66,7 @@ public class DropActorTest {
         servers.put(iDropServer);
         servers.put(cDropServer);
 
-        controller = DropCommunicatorUtil.newInstance(resourceActor, emitter, contacts, identities, servers);
+        controller = DropCommunicatorUtil.newInstance(resourceActor, emitter, contacts, identities, servers, new QblClassLoader(ClassLoader.getSystemClassLoader()));
         controller.registerModelObject(TestMessage.class);
     }
 

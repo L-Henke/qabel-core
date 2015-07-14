@@ -6,6 +6,7 @@ import com.google.gson.JsonSyntaxException;
 
 import de.qabel.core.config.Identities;
 import de.qabel.core.config.Identity;
+import de.qabel.core.config.QblClassLoader;
 import de.qabel.core.crypto.QblECKeyPair;
 
 import org.junit.Test;
@@ -31,7 +32,7 @@ public class DropMessageGsonTest {
 	GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(DropMessage.class, new DropTypeAdapter<>());
         builder.registerTypeAdapter(DropMessage.class, new DropSerializer());
-        builder.registerTypeAdapter(DropMessage.class, new DropDeserializer());
+        builder.registerTypeAdapter(DropMessage.class, new DropDeserializer(new QblClassLoader(ClassLoader.getSystemClassLoader())));
 	
 	Gson gson = builder.create();
 	
@@ -47,7 +48,7 @@ public class DropMessageGsonTest {
 	GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(DropMessage.class, new DropTypeAdapter<>());
         builder.registerTypeAdapter(DropMessage.class, new DropSerializer());
-        builder.registerTypeAdapter(DropMessage.class, new DropDeserializer());
+        builder.registerTypeAdapter(DropMessage.class, new DropDeserializer(new QblClassLoader(ClassLoader.getSystemClassLoader())));
 	
 	Gson gson = builder.create();
 	
@@ -67,7 +68,7 @@ public class DropMessageGsonTest {
         GsonBuilder builder = new GsonBuilder();
         builder.registerTypeAdapter(DropMessage.class, new DropTypeAdapter<TestMessage>());
         builder.registerTypeAdapter(DropMessage.class, new DropSerializer());
-        builder.registerTypeAdapter(DropMessage.class, new DropDeserializer());
+        builder.registerTypeAdapter(DropMessage.class, new DropDeserializer(new QblClassLoader(ClassLoader.getSystemClassLoader())));
 
         Gson gson = builder.create();
 

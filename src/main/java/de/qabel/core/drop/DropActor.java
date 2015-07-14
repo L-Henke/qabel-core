@@ -37,6 +37,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 	private DropServers mDropServers;
 	private Identities mIdentities;
 	private Contacts mContacts;
+	private QblClassLoader classLoader;
 	GsonBuilder gb;
 	Gson gson;
 	ReceiverThread receiver;
@@ -52,15 +53,16 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 		return interval;
 	}
 
-	public DropActor(ResourceActor resourceActor, EventEmitter emitter) {
+	public DropActor(ResourceActor resourceActor, EventEmitter emitter, QblClassLoader classLoader) {
 		super(emitter);
 		this.emitter = emitter;
 		this.mContacts = new Contacts();
 		this.mIdentities = new Identities();
 		this.mDropServers = new DropServers();
+		this.classLoader = classLoader;
 		gb = new GsonBuilder();
 		gb.registerTypeAdapter(DropMessage.class, new DropSerializer());
-		gb.registerTypeAdapter(DropMessage.class, new DropDeserializer());
+		gb.registerTypeAdapter(DropMessage.class, new DropDeserializer(classLoader));
 		gson = gb.create();
 		on(EVENT_ACTION_DROP_MESSAGE_SEND, this);
 		on(EventNameConstants.EVENT_CONTACT_ADDED, this);
@@ -317,7 +319,7 @@ public class DropActor extends EventActor implements de.qabel.ackack.event.Event
 			for (Identity identity : mIdentities.getIdentities()) {
 				DropMessage<?> dropMessage = null;
 				try {
-					dropMessage = binMessage.disassembleMessage(identity);
+					dropMessage = binMessage.disassembleMessage(identity, classLoader);
 				} catch (QblSpoofedSenderException e) {
 					//TODO: Notify the user about the spoofed message
 					break;

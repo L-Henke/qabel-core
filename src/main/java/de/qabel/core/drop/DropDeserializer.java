@@ -9,10 +9,18 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
+import de.qabel.core.config.QblClassLoader;
 import de.qabel.core.module.ModuleManager;
 
 
 public class DropDeserializer implements JsonDeserializer<DropMessage<ModelObject>> {
+
+    private final QblClassLoader classLoader;
+
+    public DropDeserializer(QblClassLoader classLoader) {
+        this.classLoader = classLoader;
+    }
+
     @Override
     public DropMessage<ModelObject> deserialize(JsonElement json, Type type,
                                                 JsonDeserializationContext context) throws JsonParseException {
@@ -28,10 +36,8 @@ public class DropDeserializer implements JsonDeserializer<DropMessage<ModelObjec
 
         ModelObject m;
         try {
-            ClassLoader loader = ModuleManager.LOADER;
-
             @SuppressWarnings("unchecked")
-            Class<? extends ModelObject> cls = (Class<? extends ModelObject>) loader
+            Class<? extends ModelObject> cls = (Class<? extends ModelObject>) classLoader
                     .loadClass(model);
             m = new Gson().fromJson(json.getAsJsonObject().get("data").getAsJsonObject(), cls);
         } catch (ClassNotFoundException e1) {
