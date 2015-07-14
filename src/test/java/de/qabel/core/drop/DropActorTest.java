@@ -59,7 +59,7 @@ public class DropActorTest {
     	contacts.put(senderContact);
     	contacts.put(recipientContact);
 
-        controller = DropCommunicatorUtil.newInstance(resourceActor, emitter, contacts, identities);
+        controller = DropCommunicatorUtil.newInstance(resourceActor, emitter, contacts, identities, new QblClassLoader(ClassLoader.getSystemClassLoader()));
         controller.registerModelObject(TestMessage.class);
     }
 
