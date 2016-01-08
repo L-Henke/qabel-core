@@ -33,6 +33,14 @@ public class SQLitePersistence extends Persistence<String> {
 		super(dbName, password, numPBKDF2rounds);
 	}
 
+	/**
+	 * Stores entities in a local SQLite database. Uses default PBKDF2 rounds.
+	 * @param dbName Database file name.
+	 */
+	public SQLitePersistence(String dbName, char[] password) throws QblInvalidEncryptionKeyException {
+		super(dbName, password);
+	}
+
 	@Override
 	protected boolean connect(String database) {
 		try {
